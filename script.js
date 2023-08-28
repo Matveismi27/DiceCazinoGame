@@ -18,8 +18,10 @@ coins = 0
 inventory = []
 CurrentDialog = []
 currentScene = 1
+PlayerDiceCell=1
+NovelTimer=0
 isDialog = false
-Animation = false
+ctx.font = "20px serif";
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
   }
@@ -32,16 +34,21 @@ function collision(x,y,xo,yo,width,height){
 }
 
 function novellPrint(txt){
-    if(i>txt.length){
-        i=0;
+    if(NovelTimer>txt.length){
+        NovelTimer=0;
         return
     }
-    sayDialog(txt.slice(0, i))
-    i++
+    sayDialog(txt.slice(0, NovelTimer))
+    NovelTimer++
     setTimeout(novellPrint,4,txt)
 }
 
 function DiceGame(game){
+    //* ------------- Dice Game -------------
+    round = 0
+    playerScore = []
+    enemyScore = []
+    Animation = false
     function drawDiceGame(){
         // fon
         ctx.fillStyle="rgb(254,250,230)"
@@ -50,22 +57,31 @@ function DiceGame(game){
 
         // dice cells
         DiceCellSize = 100
-        DiceSellmargin = 10
-        DiceSell1X = 20
-        DiceSell1Y = 600
-        DiceSell2X = 1165
-        DiceSell2Y = 25
+        DiceCellmargin = 10
+        DiceCell1X = 20
+        DiceCell1Y = 600
+        DiceCell2X = 1165
+        DiceCell2Y = 25
         ctx.fillStyle="rgb(250,240,220)"
-        ctx.fillRect(DiceSell1X-DiceSellmargin,DiceSell1Y-DiceSellmargin,(DiceSellmargin+DiceCellSize)*5+DiceSellmargin,DiceCellSize+DiceSellmargin*2)
-        ctx.fillRect(DiceSell2X-(DiceSellmargin+DiceCellSize)*4-DiceSellmargin,DiceSell2Y-DiceSellmargin,(DiceSellmargin+DiceCellSize)*5+DiceSellmargin,DiceCellSize+DiceSellmargin*2)
+        ctx.fillRect(DiceCell1X-DiceCellmargin,DiceCell1Y-DiceCellmargin,(DiceCellmargin+DiceCellSize)*5+DiceCellmargin,DiceCellSize+DiceCellmargin*2)
+        ctx.fillRect(DiceCell2X-(DiceCellmargin+DiceCellSize)*4-DiceCellmargin,DiceCell2Y-DiceCellmargin,(DiceCellmargin+DiceCellSize)*5+DiceCellmargin,DiceCellSize+DiceCellmargin*2)
 
         ctx.fillStyle="rgb(220,200,200)"
         for (i=0;i<5;i++){
-            ctx.fillRect(DiceSell1X + DiceSellmargin*i + DiceCellSize*i,DiceSell1Y,DiceCellSize,DiceCellSize)
+            ctx.fillRect(DiceCell1X + DiceCellmargin*i + DiceCellSize*i,DiceCell1Y,DiceCellSize,DiceCellSize)
 
-            ctx.fillRect(DiceSell2X + DiceSellmargin*-i + DiceCellSize*-i,DiceSell2Y,DiceCellSize,DiceCellSize)
+            ctx.fillRect(DiceCell2X + DiceCellmargin*-i + DiceCellSize*-i,DiceCell2Y,DiceCellSize,DiceCellSize)
         }
 
+        //Числа
+        ctx.fillStyle="rgb(0,17,17)"
+        ctx.font = "70px serif";
+        for (i in playerScore){
+            ctx.fillText(playerScore[i],DiceCell1X+(DiceCellSize+DiceCellmargin)*i+25,DiceCell1Y+80)
+        }
+        for (i in enemyScore){
+            ctx.fillText(enemyScore[i],DiceCell2X-(DiceCellSize+DiceCellmargin)*i+25,DiceCell2Y+80)
+        }
         //иконки
         ctx.fillStyle="rgb(100,170,170)"
         ctx.fillRect(10,10,200,200)
@@ -76,10 +92,71 @@ function DiceGame(game){
         ctx.fillRect(235,210,810,300)
     }
     
+    function InGameNovellPrint(txt){
+        if(NovelTimer>txt.length){
+            console.log("@:end")
+            console.log(txt.length+"/"+NovelTimer)
+            NovelTimer=0;
+            return
+        }
+        console.log("@:"+txt)
+        sayDialog(txt.slice(0, NovelTimer))
+        NovelTimer+=1
+        setTimeout(InGameNovellPrint,5,txt)
+    }
+    function InGameDialog(){
+        if (!isDialog)
+            openDialog()
+        if (currentTextPart>=CurrentDialog.length){
+            isDialog = false
+            currentTextPart=0
+            drawDiceGame()
+        }
+        if (isDialog){
+            console.log(currentTextPart)
+            console.log(NovelTimer)
+            NovelTimer=0
+            console.log(NovelTimer)
+            
+            InGameNovellPrint(CurrentDialog[currentTextPart])
+        }
+    }
+    
     if (game==1){
         drawDiceGame()
-        
+        enemyDiceCell = 1
+        CanDrink=0
+        function InvClick(x,y){
+            invY = Math.floor(y/40)
+            console.log("inv y:"+invY)
+            //кликнули ли мы по проедмету
+            if (invY>0){
+                //кликнули ли мы в нужную фазу боя?
+                if (CanDrink != 1){
+                    alert("Сейчас спаивать нельзя")
+                    return
+                }
+                if (inventory[invY-1]=="Эль"){
+                    drawDiceGame()
+                    lowest = 7
+                    lowestI = 0
+                    for (i in enemyScore){
+                        if (enemyScore[i]<lowest){
+                            lowestI = i
+                        }
+                    }
+                    enemyScore[lowestI]=1
+                    ctx.fillStyle="rgb(110,40,40)"
+                    ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
+                    ctx.fillStyle="rgb(200,0,0)"
+                    ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
+                    round=4
+                    delItem("Эль")
+                }
+            }
+        }
         function rollDice(){
+            //оба игрока кидают кубики
             try{
                 for (i in x)
                 clearTimeout(x[i]);
@@ -90,17 +167,28 @@ function DiceGame(game){
             DiceY = 300
             DiceDX = 6
             DiceDY = 1.2
-            console.log("кинул кубик")
+            console.log("Все кинули кубики")
             i=0
             //значение на кубике
-
-            while ((DiceDX+DiceDY)>0.7){
+            playerScore = []
+            for (i=0;i<PlayerDiceCell;i++){
+                playerScore[i]=getRandomInt(6)+1
+                console.log(";"+playerScore[i])
+            }
+            //значение на кубике
+            enemyScore = []
+            for (i=0;i<enemyDiceCell;i++){
+                enemyScore[i]=getRandomInt(5)+1
+                console.log(":"+enemyScore[i])
+            }
+            //анимация
+            while ((DiceDX+DiceDY)>0.8){
                 i+=1
                 
-                DiceX+=DiceDX
-                DiceY+=DiceDY
-                DiceDX*=0.984
-                DiceDY*=0.984
+                DiceX   += DiceDX
+                DiceY   += DiceDY
+                DiceDX  *= 0.97
+                DiceDY  *= 0.97
                 DiceSize = 50
                 x[i] = setTimeout((DiceX,DiceY)=>{
                     drawDiceGame()
@@ -119,16 +207,50 @@ function DiceGame(game){
             
             
         }
+        function click(x,y){
+            if (collision(x,y,235,210,810,300)){
+                //трогаем стол
+
+                if (round==0){
+                    CurrentDialog = ["Сына, хочу научить тебя играть","Просто стукни по столу"]
+                    InGameDialog()
+                }else if(round==1){
+                    rollDice()
+                }else if(round==2){
+                    CurrentDialog = ["Отлично, мы бросили кости","А теперь напои меня"]
+                    InGameDialog()
+                    CanDrink=1
+                }else if(round==3){
+                    CurrentDialog = ["Что ты так смотришь?","Просто кликни на Эль в инвентаре"]
+                    InGameDialog()
+                    round-=1
+                }else if(round==4){
+                    CanDrink=0
+                    sum=0
+                    for (i in playerScore){
+                        sum += playerScore[i]
+                    }
+                    for (i in enemyScore){
+                        sum -= enemyScore[i]
+                    }
+                    if (sum>0)
+                        CurrentDialog = ["Охх... хорошо","кто там побеждает?","Да и пофиг... играем все равно на интерес..."]
+                    else
+                        CurrentDialog = ["Охх... хорошо","Смотрим кубики","О, ничья, забавно..."]
+                    InGameDialog()
+                }else if(round==5){
+                    drawScene(currentScene)
+                }
+                round+=1
+                
+            }
+        }  
     }
-    function click(x,y){
-        if (collision(x,y,235,210,810,300)){
-            rollDice()
-        }
-    }   
+     
     MainCanvas.onclick = function(e) { // обрабатываем клики мышью
         if (isDialog){
             currentTextPart+=1
-            dialog()
+            InGameDialog()
             return
         }
         var x = (e.pageX - MainCanvas.offsetLeft) | 0;
@@ -137,12 +259,12 @@ function DiceGame(game){
         click(x,y)
     };
     InvCanvas.onclick = function(e) { // обрабатываем клики мышью
-        var x = (e.pageX - MainCanvas.offsetLeft) | 0;
-        var y = (e.pageY - MainCanvas.offsetTop)  | 0;
+        var x = (e.pageX - InvCanvas.offsetLeft) | 0;
+        var y = (e.pageY - InvCanvas.offsetTop)  | 0;
         console.log([x, y]); // выхов функции действия
-        click(x,y)
+        InvClick(x,y)
     };
-    //* /Dice Game/ *
+    //* /Dice Game/ * ------------------------------------------------
 }
 function drawScene(scene){
     let fon = new Image(width,height)
@@ -155,6 +277,7 @@ function drawScene(scene){
                     CurrentDialog = ["О пивас!","Я дверь открыл, держи серп, наруби больше пшеницы!"]
                     if (!have("Серп"))
                         add("Серп")
+                    delItem("Пивас")
                     dialog()
                 }else{
                     CurrentDialog = ["Привет сын","готов пахать поле?"]
@@ -163,7 +286,7 @@ function drawScene(scene){
                 
             }
             if (collision(x,y,90,200,250,400)){
-                CurrentDialog = ["Сыночек, держи пивас","отдай его бате чтобы он тебе серп отдал"]
+                CurrentDialog = ["Сыночек, держи Пивас","отдай его бате чтобы он тебе серп отдал"]
                 dialog()
                 if (!have("Пивас"))
                     add("Пивас")
@@ -187,19 +310,19 @@ function drawScene(scene){
         
         function click(x,y){
             if (collision(x,y,900,200,300,300)){
-                if (have("Пивас")){
+                if (have("Эль")){
                     DiceGame(1)
                 }else{
-                    CurrentDialog = ["Привет сын","Че те надо?"]
+                    CurrentDialog = ["Привет сын","Неси сюда Эль, покажу приколюху"]
                     dialog()
                 }
                 
             }
             if (collision(x,y,90,200,250,400)){
-                CurrentDialog = ["Сыночек, держи пивас","отдай его бате чтобы он с тобой сыграл"]
+                CurrentDialog = ["Сыночек, держи Эль","отдай его бате чтобы он с тобой сыграл"]
                 dialog()
-                if (!have("Пивас"))
-                    add("Пивас")
+                if (!have("Эль"))
+                    add("Эль")
             }
         }        
     }
@@ -215,15 +338,15 @@ function drawScene(scene){
         click(x,y)
     };
     InvCanvas.onclick = function(e) { // обрабатываем клики мышью
-        var x = (e.pageX - MainCanvas.offsetLeft) | 0;
-        var y = (e.pageY - MainCanvas.offsetTop)  | 0;
+        var x = (e.pageX - InvCanvas.offsetLeft) | 0;
+        var y = (e.pageY - InvCanvas.offsetTop)  | 0;
         console.log([x, y]); // выхов функции действия
-        click(x,y)
+        InvClick(x,y)
     };
     ctx.drawImage(fon,0,0)
 }
 
-function closeDialog(){
+function closeDialog(){    ctx.font = "25px serif";
     isDialog = false
     currentTextPart=0
     drawScene(currentScene)
@@ -231,6 +354,7 @@ function closeDialog(){
 function openDialog(){
     isDialog = true
     currentTextPart=0
+    NovelTimer=0
     sayDialog("")//для пустой рамки
     
 }
@@ -241,8 +365,8 @@ function sayDialog(text){
     ctx.fillStyle = "rgb(0,0,0)"
     ctx.strokeRect(80, 500, width-160, 200)
     //текст
-    ctx.font = "20px serif";
-    ctx.fillText(text, 82, 522,width-162);
+    ctx.font = "25px serif";
+    ctx.fillText(text, 82, 532,width-162);
 }
 function dialog(){
     if (!isDialog)
@@ -275,7 +399,17 @@ function add(item){
     inventory.push(item)
     updateInv()
 }
+function delItem(item){
+    for (i in inventory){
+        if (inventory[i] == item){
+            inventory.splice(i, 1);
+            updateInv()
+            return
+        }
+    }
+}
 function have(item){
+    updateInv()
     for (i in inventory){
         if (inventory[i] == item){
             return true
@@ -321,7 +455,7 @@ function wheatMiniGame(){
         }
     }
     FirstDrawGrid()
-    drawGridRect(1,1,6,6,1)
+    drawGridRect(0,0,6,6,1)
     pole[1][1]=2
     function Wheatclick(x,y){// функция производит необходимые действие при клике(касанию)
         // console.log(pole)
@@ -334,7 +468,9 @@ function wheatMiniGame(){
         }
         console.log("клик на "+x+":"+y)
         player=find(2)
-        pole[player.row][player.col]=2
+        pole[player.row][player.col]=getRandomInt(2)+1
+        player=find(2)
+        pole[player.row][player.col]=getRandomInt(2)+1
         pole[y][x]=2
         draw()
         // drawGrid()
@@ -353,6 +489,7 @@ function wheatMiniGame(){
                 }
             }
         }
+        return{row:0,col:0}
     }
 
     function draw(){
@@ -363,13 +500,13 @@ function wheatMiniGame(){
                 let img = new Image();
                 if (pole[j][i]==0){
                     ctx.fillStyle = "#997733"
-                    img.src = 'img/wheat/field 2.3f.png';
+                    img.src = 'img/wheat/field 1.3.png';
                 }else if (pole[j][i]==1){
                     ctx.fillStyle = "#fff"
-                    img.src = 'img/wheat/field 1.1.png';//(Math.floor(Math.random() * 3)+1)
+                    img.src = 'img/wheat/field 1.png';//(Math.floor(Math.random() * 3)+1)
                     
                 }else if (pole[j][i]==2){
-                    img.src = 'img/wheat/field 1.2.png';//(Math.floor(Math.random() * 3)+1)
+                    img.src = 'img/wheat/field 2.png';//(Math.floor(Math.random() * 3)+1)
                 }
                 //ctx.fillRect(i*(width/grid_columns)+bold,j*(height/grid_rows)+bold,width/grid_columns,height/grid_rows)
                 ctx.drawImage(img,i*(width/grid_columns),j*(height/grid_rows))
@@ -399,4 +536,5 @@ img.src = 'img/wheat/field 1.2.png';
 ctx.drawImage(img,height-5,width-1)
 
 drawScene(1)
+add("Эль")
 DiceGame(1)
