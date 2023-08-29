@@ -2,3 +2,12 @@ html,body{
     margin: 0;
     padding: 0;
 }
+#dialogText{
+    text-align: justify;
+    font-family: 'Segoe UI';
+    font-size: 22px;
+    position: absolute;
+    top: 535px;
+    left: 88px;
+    width: 1100px;
+}

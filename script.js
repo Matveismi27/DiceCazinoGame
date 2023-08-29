@@ -17,14 +17,26 @@ i = 0
 coins = 0
 inventory = []
 CurrentDialog = []
+roundsRes = [0,0,0]
 currentScene = 1
 PlayerDiceCell=1
 NovelTimer=0
 isDialog = false
 ctx.font = "20px serif";
+
+// ? Функция для ограничения числа
+function Ranger(num,min,max){
+    if (num<min)
+        num = min
+    if (num>max)
+        num = max
+    return num
+}
+// ? Функция для рандома
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
   }
+// ? Коллизия объектов с курсором на сцене
 function collision(x,y,xo,yo,width,height){
     if (x>xo && x<xo+width && y>yo && y<yo+height){
         return true
@@ -32,28 +44,79 @@ function collision(x,y,xo,yo,width,height){
         return false
     }
 }
-
+// ? Функция для постепенного отображения текста в диалоге (Не в игре в кости)
 function novellPrint(txt){
-    if(NovelTimer>txt.length){
+    if(NovelTimer>txt.txt.length){
         NovelTimer=0;
         return
     }
-    sayDialog(txt.slice(0, NovelTimer))
+    if (txt.name===undefined){
+        txt.name="..."
+    }
+    sayDialog(txt.txt.slice(0, NovelTimer),txt.name)
     NovelTimer++
-    setTimeout(novellPrint,4,txt)
+    setTimeout(novellPrint,5,txt)
 }
-
+//? Функция клика по инвентарю вне игры в кости
+function InvClick(x,y){
+    invY = Math.floor(y/40)
+    console.log("inv y:"+invY)
+    //кликнули ли мы по проедмету
+    if (invY>0){
+        //кликнули ли мы в нужную фазу боя?
+        if (CanDrink != 1){
+            alert("Сейчас бухать нельзя")
+            return
+        }
+        if (inventory[invY-1]=="Эль"){
+            drawDiceGame()
+            lowest = 7
+            lowestI = 0
+            for (i in enemyScore){
+                if (enemyScore[i]<lowest){
+                    lowestI = i
+                }
+            }
+            enemyScore[lowestI]=1
+            ctx.fillStyle="rgb(110,40,40)"
+            ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
+            ctx.fillStyle="rgb(200,0,0)"
+            ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
+            if (game==1)// переключение раунда в обучении
+                round=4
+            delItem("Эль")
+        }
+    }
+}
+// ? Запуск игры в кости и включение соответствующих функций
 function DiceGame(game){
     //* ------------- Dice Game -------------
     round = 0
+    BattleRound=0
     playerScore = []
     enemyScore = []
     Animation = false
+    function DrawRoundIndicator(){
+        roundsRes[BattleRound] = Ranger(summer(),-1,1)
+        ctx.fillStyle="rgb(160,160,160)"
+        ctx.fillRect(720,620,300,80)
+
+        ctx.fillStyle="rgb("+(Ranger(-roundsRes[0],0,1)*100+110)+","+(Ranger(roundsRes[0],0,1)*100+110)+",110)"
+        ctx.fillRect(725,620,70,70)
+        ctx.fillStyle="rgb("+(Ranger(-roundsRes[1],0,1)*100+110)+","+(Ranger(roundsRes[1],0,1)*100+110)+",110)"
+        ctx.fillRect(805,620,70,70)
+        ctx.fillStyle="rgb("+(Ranger(-roundsRes[2],0,1)*100+110)+","+(Ranger(roundsRes[2],0,1)*100+110)+",110)"
+        ctx.fillRect(885,620,70,70)
+        console.log(roundsRes)
+    }
     function drawDiceGame(){
         // fon
         ctx.fillStyle="rgb(254,250,230)"
         ctx.fillRect(0,0,width,height)
         
+        
+
+
 
         // dice cells
         DiceCellSize = 100
@@ -90,163 +153,255 @@ function DiceGame(game){
         //поле
         ctx.fillStyle="rgb(100,100,100)"
         ctx.fillRect(235,210,810,300)
+
+        //индикатор раунда
+        
+        DrawRoundIndicator()
     }
-    
+    // ? Функция для постепенного отображения текста в диалоге (В ИГРЕ в кости)
     function InGameNovellPrint(txt){
-        if(NovelTimer>txt.length){
+        if(NovelTimer>txt.txt.length){
             console.log("@:end")
-            console.log(txt.length+"/"+NovelTimer)
+            console.log(txt.txt.length+"/"+NovelTimer)
             NovelTimer=0;
             return
         }
-        console.log("@:"+txt)
-        sayDialog(txt.slice(0, NovelTimer))
+        console.log("@:"+txt.txt)
+        sayDialog(txt.txt.slice(0, NovelTimer),txt.name)
         NovelTimer+=1
         setTimeout(InGameNovellPrint,5,txt)
     }
+    //? Аналог запуска диалога внутри игры, необходимо изменение переменной CurrentDialog
     function InGameDialog(){
         if (!isDialog)
             openDialog()
         if (currentTextPart>=CurrentDialog.length){
+            Block.innerHTML = ""
             isDialog = false
             currentTextPart=0
             drawDiceGame()
         }
         if (isDialog){
             console.log(currentTextPart)
-            console.log(NovelTimer)
             NovelTimer=0
-            console.log(NovelTimer)
-            
             InGameNovellPrint(CurrentDialog[currentTextPart])
         }
     }
-    
+    //? Клик по инвентарю, с обработкой нажатия на различные предметы
+    function InvClick(x,y){
+        invY = Math.floor(y/40)
+        console.log("inv y:"+invY)
+        //кликнули ли мы по проедмету
+        if (invY>0){
+            //кликнули ли мы в нужную фазу боя?
+            if (CanDrink != 1){
+                alert("Сейчас спаивать нельзя")
+                return
+            }
+            if (inventory[invY-1]=="Эль"){
+                lowest = 7
+                lowestI = 0
+                for (i in enemyScore){
+                    if (enemyScore[i]<lowest){
+                        lowest = enemyScore[i]
+                        lowestI = i
+                    }
+                }
+                enemyScore[lowestI]=1
+                ctx.fillStyle="rgb(110,40,40)"
+                ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
+                ctx.fillStyle="rgb(200,0,0)"
+                ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
+                if (game==1)// переключение раунда в обучении
+                    round=4
+                delItem("Эль")
+            }
+            if (inventory[invY-1]=="Медовуха"){
+                Highest = 0
+                HighestI = 0
+                for (i in enemyScore){
+                    if (enemyScore[i]>lowest){
+                        Highest = enemyScore[i]
+                        HighestI = i
+                    }
+                }
+                enemyScore[HighestI]=2
+                ctx.fillStyle="rgb(100,40,40)"
+                ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
+                ctx.fillStyle="rgb(200,10,10)"
+                ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
+                if (game==1)// переключение раунда в обучении
+                    round=4
+                delItem("Медовуха")
+            }
+        }
+        DrawRoundIndicator()
+    }
+    //? функция бросания кубиков, заносит значения в массивы
+    function rollDice(){
+        //оба игрока кидают кубики
+        try{
+            for (i in x)
+            clearTimeout(x[i]);
+        }catch{
+            x = []
+        }
+        DiceX = 250
+        DiceY = 300
+        DiceDX = 6
+        DiceDY = 1.2
+        console.log("Все кинули кубики")
+        i=0
+        //значение на кубике
+        playerScore = []
+        for (i=0;i<PlayerDiceCell;i++){
+            playerScore[i]=getRandomInt(6)+1
+        }
+        //значение на кубике
+        enemyScore = []
+        for (i=0;i<enemyDiceCell;i++){
+            enemyScore[i]=getRandomInt(6)+1
+        }
+        
+        //анимация
+        while ((DiceDX+DiceDY)>0.8){
+            i+=1
+            
+            DiceX   += DiceDX
+            DiceY   += DiceDY
+            DiceDX  *= 0.97
+            DiceDY  *= 0.97
+            DiceSize = 50
+            x[i] = setTimeout((DiceX,DiceY)=>{
+                drawDiceGame()
+                ctx.fillStyle="rgb(250,250,250)"
+                ctx.beginPath();
+                ctx.lineTo(DiceX+30*Math.sin(DiceX/30), DiceY-30*Math.cos(DiceX/30));
+                ctx.lineTo(DiceX-30*Math.cos(DiceX/30), DiceY-30*Math.sin(DiceX/30));
+                ctx.lineTo(DiceX-30*Math.sin(DiceX/30), DiceY+30*Math.cos(DiceX/30));
+                ctx.lineTo(DiceX+30*Math.cos(DiceX/30), DiceY+30*Math.sin(DiceX/30));
+                ctx.fill();
+            },20*i,DiceX,DiceY)   
+        }
+    }
+    //? Рерол по умолчанию
+    function enemyReroll(){
+
+    }
+    function summer(){
+        sum=0
+        for (i in playerScore){
+            sum += playerScore[i]
+        }
+        for (i in enemyScore){
+            sum -= enemyScore[i]
+        }
+        return sum
+    }
+    //? Различные игровые сценарии для разных NPС
     if (game==1){
         drawDiceGame()
         enemyDiceCell = 1
         CanDrink=0
-        function InvClick(x,y){
-            invY = Math.floor(y/40)
-            console.log("inv y:"+invY)
-            //кликнули ли мы по проедмету
-            if (invY>0){
-                //кликнули ли мы в нужную фазу боя?
-                if (CanDrink != 1){
-                    alert("Сейчас спаивать нельзя")
-                    return
-                }
-                if (inventory[invY-1]=="Эль"){
-                    drawDiceGame()
-                    lowest = 7
-                    lowestI = 0
-                    for (i in enemyScore){
-                        if (enemyScore[i]<lowest){
-                            lowestI = i
-                        }
-                    }
-                    enemyScore[lowestI]=1
-                    ctx.fillStyle="rgb(110,40,40)"
-                    ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
-                    ctx.fillStyle="rgb(200,0,0)"
-                    ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
-                    round=4
-                    delItem("Эль")
-                }
-            }
-        }
-        function rollDice(){
-            //оба игрока кидают кубики
-            try{
-                for (i in x)
-                clearTimeout(x[i]);
-            }catch{
-                x = []
-            }
-            DiceX = 250
-            DiceY = 300
-            DiceDX = 6
-            DiceDY = 1.2
-            console.log("Все кинули кубики")
-            i=0
-            //значение на кубике
-            playerScore = []
-            for (i=0;i<PlayerDiceCell;i++){
-                playerScore[i]=getRandomInt(6)+1
-                console.log(";"+playerScore[i])
-            }
-            //значение на кубике
-            enemyScore = []
-            for (i=0;i<enemyDiceCell;i++){
-                enemyScore[i]=getRandomInt(5)+1
-                console.log(":"+enemyScore[i])
-            }
-            //анимация
-            while ((DiceDX+DiceDY)>0.8){
-                i+=1
-                
-                DiceX   += DiceDX
-                DiceY   += DiceDY
-                DiceDX  *= 0.97
-                DiceDY  *= 0.97
-                DiceSize = 50
-                x[i] = setTimeout((DiceX,DiceY)=>{
-                    drawDiceGame()
-                    ctx.fillStyle="rgb(250,250,250)"
-                    ctx.beginPath();
-                    ctx.lineTo(DiceX+30*Math.sin(DiceX/30), DiceY-30*Math.cos(DiceX/30));
-                    ctx.lineTo(DiceX-30*Math.cos(DiceX/30), DiceY-30*Math.sin(DiceX/30));
-                    ctx.lineTo(DiceX-30*Math.sin(DiceX/30), DiceY+30*Math.cos(DiceX/30));
-                    ctx.lineTo(DiceX+30*Math.cos(DiceX/30), DiceY+30*Math.sin(DiceX/30));
-                    ctx.fill();
-                    
-                    
-                },20*i,DiceX,DiceY)
-                
-            }
-            
-            
-        }
+        
+        round=0
+        //? Функция любого клика, в первую очередь нужна для написания диалогов НПС во всемя игры в кости
         function click(x,y){
+            
             if (collision(x,y,235,210,810,300)){
                 //трогаем стол
 
                 if (round==0){
-                    CurrentDialog = ["Сына, хочу научить тебя играть","Просто стукни по столу"]
+                    CurrentDialog = [{txt:"Сына, хочу научить тебя играть"},{txt:"Просто стукни по столу"}]
                     InGameDialog()
                 }else if(round==1){
                     rollDice()
                 }else if(round==2){
-                    CurrentDialog = ["Отлично, мы бросили кости","А теперь напои меня"]
+                    CurrentDialog = [{txt:"Сна, напои меня"},{txt:"да"}]
                     InGameDialog()
                     CanDrink=1
                 }else if(round==3){
-                    CurrentDialog = ["Что ты так смотришь?","Просто кликни на Эль в инвентаре"]
+                    CurrentDialog = [{txt:"че стоишь"},{txt:"тыкай в пойло"}]
                     InGameDialog()
                     round-=1
                 }else if(round==4){
                     CanDrink=0
-                    sum=0
-                    for (i in playerScore){
-                        sum += playerScore[i]
-                    }
-                    for (i in enemyScore){
-                        sum -= enemyScore[i]
-                    }
-                    if (sum>0)
-                        CurrentDialog = ["Охх... хорошо","кто там побеждает?","Да и пофиг... играем все равно на интерес..."]
+                    BattleRound+=1
+                    if (summer()>0)
+                        CurrentDialog = [{txt:"Ммм"},{txt:"поражение"}]
                     else
-                        CurrentDialog = ["Охх... хорошо","Смотрим кубики","О, ничья, забавно..."]
+                        CurrentDialog = [{txt:"Ммм..."},{txt:"Ничья"}]
                     InGameDialog()
                 }else if(round==5){
                     drawScene(currentScene)
                 }
                 round+=1
+                roundsRes[BattleRound] = Ranger(summer(),-1,1)
                 
             }
         }  
-    }
-     
+    } else if (game == 2){
+        drawDiceGame()
+        enemyDiceCell = 2
+        CanDrink=1
+        round=0
+        rerolls=0
+        BattleRound=0
+        //? Все противники имеют уникальный рерол костей
+        function enemyReroll(){
+            
+        }
+        function click(x,y){
+            //? REROLL
+            if (collision(x,y,DiceCell1X,DiceCell1Y,(DiceCellSize+DiceCellmargin)*5,DiceCellSize)){
+                ClickCell=Math.floor((x-DiceCell1X)/(DiceCellSize+DiceCellmargin))
+                
+                console.log("Cell: "+ClickCell+"/"+PlayerDiceCell)
+                if (ClickCell>=PlayerDiceCell||rerolls<1){
+                    return
+                }
+                
+                playerScore[ClickCell] = getRandomInt(6)+1
+                
+                DrawRoundIndicator()
+                ctx.fillStyle="rgb(110,110,40)"
+                ctx.fillRect(DiceCell1X + DiceCellmargin*ClickCell + DiceCellSize*ClickCell,DiceCell1Y,DiceCellSize,DiceCellSize)
+                ctx.fillStyle="rgb(200,200,0)"
+                ctx.fillText(playerScore[ClickCell],DiceCell1X+(DiceCellSize+DiceCellmargin)*ClickCell+25,DiceCell1Y+80)
+                rerolls-=1
+            }
+            if (collision(x,y,235,210,810,300)){
+                //тестовый бой вообще без диалогов бест оф три
+                rerolls=1
+                if (round == 0){
+                    //предбоевые действия
+                    roundsRes = [0,0,0]
+                    CurrentDialog = [{txt:"Готов сразиться с пьяным Джо?",name:"Пьяный джо"},{txt:"Просто стукни по столу",name:"Пьяный джо"}]
+                    InGameDialog()
+                    rerolls=0
+                }
+                if (round == 1){
+                    rollDice()
+                    //бросок кубов 1
+                }
+                if (round == 2){
+                    rollDice()
+                    BattleRound+=1
+                    //бросок кубов 2 если оба раунда за гг или за противником то игра завершается
+                }
+                if (round == 3){
+                    rollDice()
+                    BattleRound+=1
+
+                    //бросок кубов 3 
+                }
+                DrawRoundIndicator()
+                round+=1
+                
+            }
+        }
+    }     
+    //? В этом месте обновляются onclick обработчики событий чтобы обновить в них функцию click на новую
     MainCanvas.onclick = function(e) { // обрабатываем клики мышью
         if (isDialog){
             currentTextPart+=1
@@ -262,72 +417,78 @@ function DiceGame(game){
         var x = (e.pageX - InvCanvas.offsetLeft) | 0;
         var y = (e.pageY - InvCanvas.offsetTop)  | 0;
         console.log([x, y]); // выхов функции действия
-        InvClick(x,y)
+        InvClick(x,y)//Х здесь по факту не нужен но он к счастью и не мешает, пусть будет
     };
     //* /Dice Game/ * ------------------------------------------------
 }
+//? Функция рисует сцену, ферма, Бар, замок и т.д. Это все тут
 function drawScene(scene){
-    let fon = new Image(width,height)
+    let farm = new Image(width,height)
+    let house = new Image(width,height)
+    farm.src = "img/scene/farm.png"
+    house.src = "img/scene/house.png"
+    ctx.drawImage(farm,0,0)
+
     if (scene == 1){
-        fon.src = "img/l1.png"
         
+        //? У каждой сцены свои обработчики на клик
         function click(x,y){
-            if (collision(x,y,900,200,300,300)){
-                if (have("Пивас")){
-                    CurrentDialog = ["О пивас!","Я дверь открыл, держи серп, наруби больше пшеницы!"]
-                    if (!have("Серп"))
-                        add("Серп")
-                    delItem("Пивас")
-                    dialog()
-                }else{
-                    CurrentDialog = ["Привет сын","готов пахать поле?"]
-                    dialog()
-                }
-                
+            ctx.drawImage(farm,0,0)
+            //у нас тут вступление/повествование
+            if (currentScene==2){
+                drawScene(2)
+                return
             }
-            if (collision(x,y,90,200,250,400)){
-                CurrentDialog = ["Сыночек, держи Пивас","отдай его бате чтобы он тебе серп отдал"]
-                dialog()
-                if (!have("Пивас"))
-                    add("Пивас")
-            }
-        
-            if (collision(x,y,400,100,250,400)){
-                if (!have("Серп")){
-                    CurrentDialog = ["Дверь закрыта"]
-                    dialog()
-                    return
-                }
-                CurrentDialog = ["Отлично, дверь открыта"]
-                wheatMiniGame()
-            }
+            CurrentDialog = [{txt:"Недалеко от славного города Костянск расположилась непримечательная деревушка, в которой самым громким событием за последние 10 лет был лишь побег петуха. Чуть в сторонке от неё, совсем рядышком, около того самого озера, живет обычная крестьянская семья.", name:"Рассказчик"},
+            {txt:"Они, как и другие жители деревни, вовсю готовятся к предстоящей зиме, ведь скоро наступят холода. Однако нашего героя особо то и не заботят какие-то там холода. Ему бы сейчас чем-нибудь набить брюхо, да думать о мелочах житейских.", name:"Рассказчик"},
+            {txt:"Матушка, когда кушать уж будем? Я скоро с голоду помру, а тут еще и батьку надо будет помочь со сбором урожая.", name:"Герой (главный)"},
+            {txt:"Сейчас-сейчас, сынок. Только-только пришла с дойки. Ох, столько работы накопилось, к зиме бы успеть все дела наши переделать.", name:"Мама"},
+            {txt:"Стоило только кому-то заикнуться о еде, как глава семейства уже тут как тут.", name:"Рассказчик"},
+            {txt:"Давай, жена, накрывай стол. Сытный обед нам точно не поешает. Поедим и пахать пойдем с сыном, а то он небось так и будет бока отлёживать.", name:"Отец"},
+            {txt:"Ну всё, всё.  Садитесь-ка уже к столу, обедать будем.", name:"Мама"},
+            {txt:"Отец и сын жадно кушали сваренную на печи кашу, закусывая её свежеиспеченным хлебом. Набив животы, они сразу вышли из дома и направились к пшеничному полю, которое простиралось чуть ли не до самого горизонта.", name:"Рассказчик"},] 
+            dialog()
+            currentScene=2
+            
         }
         
     }   
+    // [{txt:"",name:""}]
     //* ----------------------------------------------------------------
     if (scene == 2){
-        fon.src = "img/l1.png"
-        
+        ctx.drawImage(house,0,0)
         function click(x,y){
-            if (collision(x,y,900,200,300,300)){
-                if (have("Эль")){
-                    DiceGame(1)
-                }else{
-                    CurrentDialog = ["Привет сын","Неси сюда Эль, покажу приколюху"]
-                    dialog()
-                }
-                
-            }
-            if (collision(x,y,90,200,250,400)){
-                CurrentDialog = ["Сыночек, держи Эль","отдай его бате чтобы он с тобой сыграл"]
+                CurrentDialog = [{txt:"Ну что, сынок, до самого вечера пахать будем. Эдак и немудрено будет всю жатву проморгать, коль буду я тебя, шалопая, постоянно стеречь. Берись, давай, за серп и не ленись. Как батька твой работай!", name:"Отец"},
+                {txt:"Да я уж понял, что время поджимает. И так маманя с утра все уши прожужжала про эту подготовку к зиме.", name:"Герой (главный)"},
+                {txt:"Ты на мать то не серчай, беспокоится она. Вот скоро закончим убирать урожай и время на забавы появится.", name:"Отец"},
+                {txt:"Солнце палило нещадно, но это никого не останавливало от работы. Наоборот. Во всю стремился наш герой порадовать отца и нещадно жал серпом золотистые колосья.", name:"Рассказчик"},
+                {txt:"Изрядно потрудившись, отец решил немного перевести дух.", name:"Рассказчик"},
+                {txt:"Фух, славно мы потрудились. Отдохнем немного, а то уж денёк сегодня на редкость жаркий. Садись сюда, в тенёчке прохладней.", name:"Отец"},
+                {txt:"Сидят отец с сыном в прохладной тени, отдуваются, всё стирая пот со лба, да радуются видом проделанной работы.", name:"Рассказчик"},
+                {txt:"Ох молодец ты! Вот фиг тебя загонишь на поле, но стоит только споймать как работаешь за четверых. Не отлынивал бы ещё… Но, молодец! Горжусь тобой!", name:"Отец"},
+                {txt:"А как гордился то собой наш герой!", name:"Рассказчик"},
+                {txt:"Спасибо, бать.", name:"Герой (главный)"},
+                {txt:"Но не был бы этот парень героем нашего рассказа, если б изменил себе.", name:"Рассказчик"},
+                {txt:"А давай, если я больше тебя пшеницы соберу, то монетки получу и завтра на поле работать не буду, по рукам?", name:"Герой (главный)"},
+                {txt:"Да как звонко рассмеялся! Ох, видели бы вы этот возмущённый отцовский взгляд! Но то всё напускное. Не был бы он папкой этого парня, если б не знал как совладать с ним.", name:"Рассказчик"},
+                {txt:"Ты так родичей своих скоро в могилу сведешь! Ну ладно, так уж и быть. Хоть дитятко мое позабавится.", name:"Отец"},]
                 dialog()
-                if (!have("Эль"))
-                    add("Эль")
-            }
-        }        
+                if (!have("Серп"))
+                    add("Серп")
+                else
+                    wheatMiniGame()
+        }    
+         
     }
+    else if (scene == 3){
+
+    }   
+    //? Записываем клик в обработчик события
     MainCanvas.onclick = function(e) { // обрабатываем клики мышью
         if (isDialog){
+            if (NovelTimer>0){
+                return
+            }
             currentTextPart+=1
             dialog()
             return
@@ -343,31 +504,37 @@ function drawScene(scene){
         console.log([x, y]); // выхов функции действия
         InvClick(x,y)
     };
-    ctx.drawImage(fon,0,0)
 }
 
-function closeDialog(){    ctx.font = "25px serif";
+//? Вспомогательные тех функции для диалогов
+function closeDialog(){    
     isDialog = false
+    Block.innerHTML = ""
     currentTextPart=0
     drawScene(currentScene)
 }
 function openDialog(){
+    ctx.font = "25px serif";
     isDialog = true
     currentTextPart=0
     NovelTimer=0
     sayDialog("")//для пустой рамки
     
 }
-function sayDialog(text){
+function sayDialog(text,name){
     //рамка
     ctx.fillStyle = "rgb(255,255,255)"
     ctx.fillRect(80,500,width-160,200)
     ctx.fillStyle = "rgb(0,0,0)"
     ctx.strokeRect(80, 500, width-160, 200)
     //текст
-    ctx.font = "25px serif";
-    ctx.fillText(text, 82, 532,width-162);
+    Block = document.getElementById("dialogText")
+    Block.innerHTML = text
+    //имя
+    ctx.font = "30px serif";
+    ctx.fillText(name, 83, 530,width-162);
 }
+//? Функция запуска диалога, необходимо предварительное редактирование CurrentDialog
 function dialog(){
     if (!isDialog)
         openDialog()
@@ -378,6 +545,7 @@ function dialog(){
 
 }
 
+//? Обновляет инвентарь на наличие новых предметов
 function updateInv(){
     inv.fillStyle = "rgb(25,25,55)"
     inv.fillRect(0,0,invWidth,invHeight)
@@ -395,10 +563,12 @@ function updateInv(){
     }
 }
 updateInv()
+//? Добавляет предмет в инвентарь
 function add(item){
     inventory.push(item)
     updateInv()
 }
+//? Удаляет предмет из инвентаря в еденичном экземпляре
 function delItem(item){
     for (i in inventory){
         if (inventory[i] == item){
@@ -408,6 +578,7 @@ function delItem(item){
         }
     }
 }
+//? Возвращает true если предмет есть в инвентаре
 function have(item){
     updateInv()
     for (i in inventory){
@@ -418,6 +589,7 @@ function have(item){
     return false
 }
 
+//? Миниигра про пшеницу
 function wheatMiniGame(){
     //*-------------------------------
     let grid_rows = 9
@@ -522,11 +694,13 @@ function wheatMiniGame(){
     setTimeout(()=>{
         alert("Все!")
         drawScene(2)
-        currentScene = 2
+        currentScene = 3
         return
     },10000)
     //* ------------------------------------
 }
+
+//? Подгружает картинки перед игрой в пшеницу
 let img = new Image();
 img.src = 'img/wheat/field 2.3.png';
 ctx.drawImage(img,height-5,width-3)
@@ -536,5 +710,6 @@ img.src = 'img/wheat/field 1.2.png';
 ctx.drawImage(img,height-5,width-1)
 
 drawScene(1)
-add("Эль")
-DiceGame(1)
+// add("Эль")
+// PlayerDiceCell=2
+// DiceGame(2)
