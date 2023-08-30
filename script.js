@@ -14,6 +14,7 @@ let fon = new Image(width,height)
 fon.src = "img/l1.png"
 ctx.drawImage(fon,0,0)
 i = 0
+CanDrink=0
 coins = 0
 inventory = []
 CurrentDialog = []
@@ -90,10 +91,10 @@ function InvClick(x,y){
     }
 }
 let magaz = new Image(width,height)
-magaz.src = "img/scene/magaz.png"
+magaz.src = "img/menu.png"
 let portnoy = new Image(width,height)
 portnoy.src = "img/scene/portnoy.png"
-firstBarShop=true
+firstBarShop=false
 function ShopOpen(Shop){
     if (Shop == 0){
         //Открываем барную стойку
@@ -115,9 +116,10 @@ function ShopOpen(Shop){
             {txt:"Пётр", name:"Герой (главный)"},]
             dialog()
             firstBarShop=false
+            return
         }
         
-        ctx.drawImage(magaz,0,0)
+        ctx.drawImage(magaz,500,200)
         //Ассоротимент 
         assort = ["Ром","Медовуха","Эль"]
 
@@ -127,8 +129,21 @@ function ShopOpen(Shop){
             var y = (e.pageY - MainCanvas.offsetTop)  | 0;
             console.log([x, y]); // выхов функции действия
             // alert("Магазик")
-            if (!collision(x,y,300,50,500,600)){
+            if (!collision(x,y,500,200,200,500)){
                 drawScene(currentScene)
+            }else{
+                if (collision(x,y,500,200,200,100)){
+                    alert(1)
+                }
+                else if (collision(x,y,500,200,200,200)){
+                    alert(2)
+                }
+                else if (collision(x,y,500,200,200,300)){
+                    alert(3)
+                    
+                }else{
+                    alert(4)
+                }
             }
         };
     }
@@ -258,6 +273,7 @@ function DiceGame(game){
     }
     //! Клик по инвентарю, с обработкой нажатия на различные предметы
     function InvClick(x,y){
+        updateInv()
         invY = Math.floor(y/40)
         console.log("inv y:"+invY)
         //кликнули ли мы по проедмету
@@ -289,7 +305,7 @@ function DiceGame(game){
                 Highest = 0
                 HighestI = 0
                 for (i in enemyScore){
-                    if (enemyScore[i]>lowest){
+                    if (enemyScore[i]>Highest){
                         Highest = enemyScore[i]
                         HighestI = i
                     }
@@ -307,7 +323,7 @@ function DiceGame(game){
                 Highest = 0
                 HighestI = 0
                 for (i in enemyScore){
-                    if (enemyScore[i]>lowest){
+                    if (enemyScore[i]>Highest){
                         Highest = enemyScore[i]
                         HighestI = i
                     }
@@ -319,7 +335,7 @@ function DiceGame(game){
                 ctx.fillText(enemyScore[HighestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*HighestI+25,DiceCell2Y+80)
                 if (game==1)// переключение раунда в обучении
                     round=4
-                delItem("Медовуха")
+                delItem("Ром")
             }
         }
         DrawRoundIndicator()
@@ -512,7 +528,7 @@ function DiceGame(game){
                     {txt:"А как всегда выигрывать?", name:"Герой (главный)"},
                     {txt:"Ну, уж чего не знаю того *ИК* не знаю. Отец мне передал только стиль, а вот как всегда выигрывать - не рассказывал. Но главное не дай себе засохнуть! Хе-хе...", name:"Пьяный Джо"},]             
                     isDialog=true
-                    setTimeout(InGameDialog, 1000);
+                    setTimeout(InGameDialog, 100);
                     
                     //бросок кубов 2 если оба раунда за гг или за противником то игра завершается
                 }
@@ -525,14 +541,26 @@ function DiceGame(game){
                     //подсчёт результатов
                     if (gameOverScore()>=0){
                         CurrentDialog = [{txt:"Проследив за исчезающими в ваших руках монетами, Пьяный Джо лишь горько вздохнул, потянулся за недопитым пивом, да так и уснул.", name:"Рассказчик"},]
-
+                        coins*=2
+                        if (coins<5){
+                            coins+=2
+                        }
+                        if (coins>15&&currentScene==10){
+                            currentScene=11
+                        }
+                        
+                        updateInv()
                     }else{
                         CurrentDialog = [{txt:"Пьяный Джо сграбастал выигранные деньги, на удивление, очень быстро.", name:"Рассказчик"},
                         {txt:"Ну, это мне на *ИК* поддержку моего стиля.", name:"Пьяный Джо"},
                         {txt:"Ток ты это *ИК*, возвращайся. Ещё чему научу!", name:"Пьяный Джо"},
                         {txt:"И радостно захрапел", name:"Рассказчик"}]
+                        coins-=1
                     }
                     isDialog=true
+                    if (currentScene==9&&coins>3){
+                        currentScene=10
+                    }
                     setTimeout(InGameDialog, 100);
                     setTimeout(drawScene, 90,currentScene);
                 }
@@ -609,6 +637,9 @@ function DiceGame(game){
                 if (round == 3){
                     BattleRound=2
                     rollDice()
+                    
+                    //бросок кубов 3 
+                }else if (round == 4){
                     if (summer()<0){
                         CurrentDialog = [{txt:"Я победил!", name:"Герой (главный)"},
                         {txt:"Не спорю, всё честно.", name:"Просто Фил"},
@@ -627,12 +658,108 @@ function DiceGame(game){
                         {txt:"У нашего героя, от столь хороших слов, аж потеплело на душе.", name:"Рассказчик"},
                         {txt:"Спасибо большое, Просто Фил! Во век вашу науку не забуду!", name:"Герой (главный)"}]
                         coins*=2
+                        if (coins>15&&currentScene==10){
+                            currentScene=11
+                        }
+                        
+
+                    }else{
+                        CurrentDialog = [{txt:"Ну ничего, парень, бывает. Ты главное не унывай и играй не на последние деньги.", name:"Просто Фил"}]
+                        coins=Match.floor(coins/2)+1
+                    }
+                    
+                    InGameDialog()
+                    drawScene(currentScene)
+                }
+                updateInv()
+                DrawRoundIndicator()
+                round+=1
+                
+            }
+        }
+    }else if (game ==4){
+        InGameDialog()//диалог пред боем, текст задаётся так же перед боем
+        // drawDiceGame()
+        enemyDiceCell = 2
+        CanDrink=1
+        round=0
+        rerolls=0
+        BattleRound=0
+        //? Все противники имеют уникальный рерол костей
+        function enemyReroll(){
+            lowest = 7
+            lowestI = 0
+            for (i in enemyScore){
+                if (enemyScore[i]<lowest){
+                    lowest = enemyScore[i]
+                    lowestI = i
+                }
+            }
+            enemyScore[lowestI]=4
+            ctx.fillStyle="rgb(110,140,50)"
+            ctx.fillRect(DiceCell2X + DiceCellmargin*-lowestI + DiceCellSize*-lowestI,DiceCell2Y,DiceCellSize,DiceCellSize)
+            ctx.fillStyle="rgb(200,100,50)"
+            ctx.fillText(enemyScore[lowestI],DiceCell2X-(DiceCellSize+DiceCellmargin)*lowestI+25,DiceCell2Y+80)
+        }
+        function click(x,y){
+            //? REROLL
+            if (collision(x,y,DiceCell1X,DiceCell1Y,(DiceCellSize+DiceCellmargin)*5,DiceCellSize)){
+                ClickCell=Math.floor((x-DiceCell1X)/(DiceCellSize+DiceCellmargin))
+                
+                console.log("Cell: "+ClickCell+"/"+PlayerDiceCell)
+                if (ClickCell>=PlayerDiceCell||rerolls<1){
+                    return
+                }
+                
+                playerScore[ClickCell] = getRandomInt(6)+1
+                
+                DrawRoundIndicator()
+                ctx.fillStyle="rgb(110,110,40)"
+                ctx.fillRect(DiceCell1X + DiceCellmargin*ClickCell + DiceCellSize*ClickCell,DiceCell1Y,DiceCellSize,DiceCellSize)
+                ctx.fillStyle="rgb(255,255,40)"
+                ctx.fillText(playerScore[ClickCell],DiceCell1X+DiceCellmargin*ClickCell+DiceCellSize*ClickCell+DiceCellmargin,DiceCell1Y+80)
+                rerolls-=1
+            }
+            if (collision(x,y,235,210,810,300)){
+                //тестовый бой вообще без диалогов бест оф три
+                rerolls=1
+                if (round == 0){
+                    //предбоевые действия
+                    roundsRes = [0,0,0]
+                    CurrentDialog = [{txt:"Пыхтела всё ведьма, а грудь её и вниз и вверх. То ли пыталась зачаровать кости, то ли смутить нашего героя… Чёрт её знает. Но повлиять на нашего героя у неё так и не вышло. Помнил всё парень заветы добрых людей.", name:"Рассказчик"},]
+                    isDialog=true
+                    setTimeout(InGameDialog, 10);   
+                    rerolls=0
+                }
+                if (round == 1){
+                    BattleRound=0
+                    rollDice()
+                    
+                    //бросок кубов 1
+                }
+                if (round == 2){
+                    BattleRound=1  
+                    rollDice()
+
+                    //бросок кубов 2 если оба раунда за гг или за противником то игра завершается
+                }
+                if (round == 3){
+                    BattleRound=2
+                    rollDice()
+                    if (summer()<0){
+                        CurrentDialog = [{txt:"Как только поняла Лина, что проиграла, так в ней будто сам Сатана пробудился.", name:"Рассказчик"},
+                        {txt:"Со злости перевернула одним взмахом стол, от чего все кости разлетелись по таверне, да давай ходить туда сюда, всё сжимая и разжимая когти.", name:"Рассказчик"},
+                        {txt:"Но стоило ей увидеть грозный взгляд Просто Фила, как тут же собрала все кости и понуро села на место.", name:"Рассказчик"},]                        
+                        coins*=2
                         if (coins>20)
                         currentScene=11
                         
 
                     }else{
-                        CurrentDialog = [{txt:"Ну ничего, парень, бывает. Ты главное не унывай и играй не на последние деньги.", name:"Просто Фил"}]
+                        CurrentDialog = [{txt:"В дьявольской улыбке расплылась Лина.", name:"Рассказчик"},
+                        {txt:"Ещё!", name:"Лина"},
+                        {txt:"Потребовала она.", name:"Рассказчик"},]
+                        
                         coins=Match.floor(coins/2)
                     }
                     
@@ -690,11 +817,13 @@ function drawScene(scene){
     let kingNPC = new Image(width,height)
     let s1NPC = new Image(width,height)
     let s2NPC = new Image(width,height)
+    let bob = new Image(width,height)
     dadNPC.src = "img/npc/батя гг.png"
     generalNPC.src = "img/npc/генерал.png"
     kingNPC.src = "img/npc/король.png"
     s1NPC.src = "img/npc/стражник 1.png"
     s2NPC.src = "img/npc/стражник 2.png"
+    bob.src = "img/npc/bob.png"
 
     //! Сцены -----------------------------------------------------------------------------------------
     if (scene == 1){
@@ -869,7 +998,7 @@ function drawScene(scene){
         dialog()
     }else if(scene ==8){
         ctx.drawImage(tavern,0,0)
-        coins = 0
+        coins = 1
         CurrentDialog = [{txt:"…ка-а-ак клюнул носом вонючий пропитый стол.", name:"Рассказчик"},
         {txt:"Ох, ты-ж…", name:"Главный герой (теперь точно)"},
         {txt:"Жуткое похмелье, боль в носу, затёкшая спина ещё и жажда лютая. Доброе утро…", name:"Рассказчик"},
@@ -911,6 +1040,8 @@ function drawScene(scene){
     } else if (scene==9){
         ctx.drawImage(tavern,0,0)
         ctx.drawImage(dadNPC,200,165)
+        ctx.drawImage(bob,890,87)
+
         function click(x,y){
             if (collision(x,y,100,85,130,200)){
                 Label()
@@ -955,13 +1086,33 @@ function drawScene(scene){
         //после игры с джо
         ctx.drawImage(tavern,0,0)
         ctx.drawImage(dadNPC,200,165)
-        ctx.drawImage(generalNPC,500,300)
+        ctx.drawImage(s1NPC,500,300)
+        ctx.drawImage(bob,890,87)
+
         function click(x,y){
             if (collision(x,y,100,85,130,200)){
                 Label()
             }
             if (collision(x,y,800,140,400,300)){
                 ShopOpen(0)
+            }
+            if (collision()){
+                CurrentDialog=[{txt:"Ну что? Как успехи?", name:"Нищий"},
+                {txt:"Я вам расскажу, только вот стыдно мне всё. Как вас звать то, дяденька? Мы ж уже, получается, знакомцы хорошие. Победой своей поделиться хочу и даже не знаю как зовут вас.", name:"Герой (главный)"},
+                {txt:"По батюшке меня назвали - Петром. Только вот я имени его не помню…", name:"Пётр"},
+                {txt:"Как так вышло то, Пётр?", name:"Герой (главный)"},
+                {txt:"Эх-х, тяжёлая это история. Будучи несмышлёнышем совсем, как вот помню чуток, сбежал я из дому да пошёл гулять. Но гулять не то что по городу бродить, а вот прям странствовать. Уцепился за телегу бродячего фокусника и уехал так вот.", name:"Пётр"},
+                {txt:"И вот даж не знаю как так, но потом уж через много мамку с папкой вспомнил. Грустно то как стало… эх-х. Тяжело на сердце, как вспоминаю. Ну и решил я найти свой дом и вернуться к маме с папой.", name:"Пётр"},
+                {txt:"А я ж тогда-то ничегошеньки не смыслил. Даже не знал откуда родом. Помнил только, что большой-большой город, какую-то таверну, и что назвали меня по батюшке, но чуть по другому. Как-то вот на “П” его звали…", name:"Пётр"},
+                {txt:"Ну и вот, как видишь по лохмотьям моим, до сих пор странствую...", name:"Пётр"},
+                {txt:"Заметно огорчился наш герой от услышанного. Жалко ему стало нового друга, и решил он ему помочь.", name:"Рассказчик"},
+                {txt:"Я обязательно вам помогу чем смогу! На рынке поспрашиваю люд, знакомцев тоже хороших и у Пита. Вы не спрашивали у него? ", name:"Герой (главный)"},
+                {txt:"У кого?", name:"Пётр"},
+                {txt:"У Пита.", name:"Герой (главный)"},
+                {txt:"А кто это?", name:"Пётр"},
+                {txt:"Хозяин таверны. В таверне же всегда люду много странствующего. Чего ж вы к нему не обратились то ещё?", name:"Герой (главный)"},
+                {txt:"Так он хмурый, мрачный какой-то. Я ему только слово, а он отвернётся. Но чует сердце - человек хороший. Будь плохим, гнал бы меня взашей, даж не думая.", name:"Пётр"}]
+
             }
             if (collision(x,y,240,165,300,230)){
                 
@@ -996,11 +1147,63 @@ function drawScene(scene){
                 {txt:"Ха-ха, так это же я! Ну, коль есть на что играть и настроен будешь серьёзней, то давай. Испытаем тебя. Сейчас только с одним другом сыграю...", name:"Фил"},]
                 
                 DiceGame(3)
+                firstBarShop=false
             }
             console.log("T x:"+x+" y:"+y)
         }
     }else if (scene==11){
+        ctx.drawImage(tavern,0,0)
+        ctx.drawImage(dadNPC,200,165)
+        ctx.drawImage(generalNPC,800,100)
+
+        if (collision(x,y,800,100,400,340)){
+            CurrentDialog = [{txt:"Наш герой подходит к Просто Филу, чтобы поинтересоваться куда пропал Пит. Впервые на памяти парня хозяин таверны покинул свой пост. ", name:"Рассказчик"},
+            {txt:"Доброго денёчка.", name:"Герой (главный)"},
+            {txt:"Привет-привет. Если ты затем чтоб узнать где Пит - ты не первый за сегодня. Все уши уже мне прожужжали.", name:"Просто Фил"},
+            {txt:"Просто Фил аккуратно поставил все кружки в стройный ряд, полюбовался и продолжил", name:"Рассказчик"},
+            {txt:"Так вот, Пит ушёл из таверны утром. Я его таким взбудораженным ни разу не видел, ей богу. Туда сюда словно листочек на ветру.", name:"Просто Фил"},
+            {txt:"Всё остановить его пытался, чтоб узнать что случилось. Получилось ток когда я его за шкирку схватил, как хулиганьё какое. А тому хоть бы хны! Нет чтоб мне в морду дать за такое. Сказал лишь:”Потом, потом!”, да давай дальше бегать.", name:"Просто Фил"},
+            {txt:"Я сажусь на лавку и думаю, что такое приключиться могло с нашим Питом. Надумал вот что…", name:"Просто Фил"},
+            {txt:"Этой театральной паузе позавидовали бы даже в театре.", name:"Рассказчик"},
+            {txt:"Ну не томи!", name:"Герой (главный)"},
+            {txt:"Баба его какая охмурила! Ей богу, никак иначе! Он же с того момента как его жена… Ну… Ты понял в общем. С того момента закрылся от всяких баб и сидит в своей таверне, носу не высовывая. А тут, видимо, нашёл красавицу, вот и запала она ему в душу. Когда ещё взрослый мужик будет бегать по хате весь взбудораженный как дитё малое?", name:"Просто Фил"},
+            {txt:"В конце концов попросил он меня приглядеть за таверной, а сам смылся куда-то. Вот так-то дела были.", name:"Просто Фил"},]
+            currentScene=12
+            dialog()
+        }
+    }else if (scene = 12){
+        currentScene=13
+        CurrentDialog = [{txt:"Кот из дома мыши в пляс. Стоило только Питу уйти из таверны, как тут же вернулась рыжая бестия Лина.", name:"Рассказчик"},
+        {txt:"Наш герой сразу же заприметил эту шельму и тут же направился к ней.", name:"Рассказчик"},
+        {txt:"Лина!", name:"Герой (главный)"},
+        {txt:"На грозный выкрик парня, та лишь удивлённо приподняла бровь.", name:"Рассказчик"},
+        {txt:"Доставай кости! Будем честно, по костянской традиции, играть, да выясним - честно забрала ты мои деньги или нет!", name:"Герой (главный)"},
+        {txt:"Лина же чуть не сползла под стол со смеху.", name:"Рассказчик"},
+        {txt:"А-ха-ха-ха-ха! У тебя же ничего нет. А-ха-ха! На что играть то собрался!? На штаны?", name:"Лина"},
+        {txt:"Смеялась всё над парнем шельма, да не замечала нависшие над ней тени.", name:"Рассказчик"},
+        {txt:"С чего ты вообще взял, что я играть с тобой буду?", name:"Лина"},
+        {txt:"Потому что мы так решили!", name:"Просто Фил"},
+        {txt:"Просто Фил встал в дверях, а другие посетители загородили окна", name:"Рассказчик"},
+        {txt:"Хватит тебе простой люд дурить. Играть будешь честно, иначе пеняй на себя!", name:"Просто Фил"},
+        {txt:"И стало ей вдруг не смешно. ", name:"Рассказчик"},]
+        dialog()
         
+    }else if (scene = 13){
+        CurrentDialog = [{txt:"Впервые за несколько дней, наш герой увидел черта.", name:"Рассказчик"},
+        {txt:"Бегемот, ты что-ли?", name:"Герой (главный)"},
+        {txt:"У черта глаза по пять дублонов.", name:"Рассказчик"},
+        {txt:"Неужто хоть кто-то моё имя запомнил. Говори, что хотел?", name:"Чёрт"},
+        {txt:"Ты что тут забыл? Про спор помнишь наш? Не потерял ещё кружечку мою?", name:"Герой (главный)"},
+        {txt:"Нечего мне делать, кроме как дуракам всяким о делах адских рассказывать… *бубнит*... Ладно, за Линой я пришёл. ", name:"Чёрт"},
+        {txt:"Неужели котёл по ней плачет? ", name:"Герой (главный)"},
+        {txt:"Да не котёл, а я по ней плачу! Деньги любит и людей дурить. Очень умная и красивая женщина. Ох-х, красавица моя…", name:"Чёрт"},
+        {txt:"Очень тяжко вздохнул Бегемот", name:"Рассказчик"},
+        {txt:"Только вот ни чертов, ни бегемотов не любит.", name:"Чёрт"},
+        {txt:"От подобных предпочтений, у нашего героя лишь отвисла челюсть.", name:"Рассказчик"},
+        {txt:"А… А спор?", name:"Герой (главный)"},
+        {txt:"Вот обыграешь Короля, тогда и напоминай. А пока не мешай, хочу посмотреть как любовь моя ловко обхитрит тебя.", name:"Чёрт"},
+        {txt:"На что наш герой лишь почесал репу, даже не зная что и думать.", name:"Герой (главный)"},]
+        DiceGame(4)
     }
     //? Записываем клик в обработчик события
     MainCanvas.onclick = function(e) { // обрабатываем клики мышью
@@ -1229,8 +1432,8 @@ ctx.drawImage(field2Img,height-5,width-1)
 
 coins=1
 updateInv()
-currentScene = 10
-drawScene(10)
+currentScene = 9
+drawScene(9)
 add("Медовуха")
 add("Ром")
 add("Эль")
